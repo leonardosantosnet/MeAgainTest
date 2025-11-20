@@ -1,6 +1,5 @@
 {
   "/api/session-types/route": "app/api/session-types/route.js",
   "/api/availability/route": "app/api/availability/route.js",
-  "/api/sessions/route": "app/api/sessions/route.js",
-  "/api/progress/route": "app/api/progress/route.js"
+  "/api/sessions/route": "app/api/sessions/route.js"
 }

@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback} from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Alert, FlatList, Keyboard } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import {
   createAvailability,
@@ -10,6 +11,7 @@ import { Availability } from '../../types/availability';
 import dayjs from "dayjs";
 import * as Device from 'expo-device';
 
+ 
 export default function AvailabilityScreen() {
   const [availability, setAvailability] = useState<Availability[]>([]);
   const [startHour, setStartHour] = useState<Date | null>(null);
@@ -90,6 +92,11 @@ export default function AvailabilityScreen() {
 
   useEffect(() => { fetchAvailability(); }, []);
 
+   useFocusEffect(
+      useCallback(() => {
+         fetchAvailability();
+      }, [])
+  );
   return (
     <View style={styles.container}>
 

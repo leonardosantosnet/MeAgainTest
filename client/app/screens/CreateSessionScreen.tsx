@@ -17,7 +17,7 @@ import * as Device from 'expo-device';
 
 import RNPickerSelect from "react-native-picker-select";
 
-import { getSessionTypes, createSession, getSessions, deleteSession } from '../../services/api';
+import { getSessionTypes, createSession, getSessions, deleteSession, completeSession } from '../../services/api';
 import { Session, SessionType } from '../../types/session';
 
 export default function SessionsScreen() {
@@ -95,6 +95,16 @@ export default function SessionsScreen() {
     }
   };
 
+  const handleComplete = async (id: string) => {
+    try {
+      await completeSession(id);
+      fetchSessions();
+    } catch (err) {
+      console.error(err);
+      Alert.alert("Error", "Unable to complete session.");
+    }
+  };
+
   const renderSession = ({ item }: { item: Session }) => {
     return (
       <View style={styles.sessionCard}>
@@ -110,12 +120,20 @@ export default function SessionsScreen() {
         <Text style={styles.sessionInfo}>
           Duration: <Text style={styles.sessionBold}>{item.duration} min</Text>
         </Text>
-        <TouchableOpacity
-          style={styles.deleteButton}
-          onPress={() => handleDelete(item.id)}
-        >
-          <Text style={styles.deleteText}>Delete</Text>
-        </TouchableOpacity>
+        <View style={styles.actionRow}>
+          <TouchableOpacity
+            style={styles.deleteButton}
+            onPress={() => handleDelete(item.id)}
+          >
+            <Text style={styles.deleteText}>Delete</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.completeButton}
+            onPress={() => handleComplete(item.id)}
+          >
+            <Text style={styles.completeText}>Completed</Text>
+          </TouchableOpacity>
+        </View>
       </View>
     );
   };
@@ -200,6 +218,11 @@ const styles = StyleSheet.create({
     padding: 20,
     backgroundColor: '#F2F4F8',
     flexGrow: 1,
+  },
+  actionRow: {
+    flexDirection: 'row',
+    marginTop: 14,
+    gap: 10,
   },
   header: {
     fontSize: 24,
@@ -300,6 +323,7 @@ const styles = StyleSheet.create({
     color: '#1E1E1E',
   },
   deleteButton: {
+    flex: 1,
     marginTop: 12,
     paddingVertical: 10,
     borderRadius: 10,
@@ -315,4 +339,21 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '700',
   },
+  completeButton: {
+  flex: 1,
+  marginTop: 10,
+  paddingVertical: 10,
+  borderRadius: 10,
+  backgroundColor: '#3B82F6', // blue
+  alignItems: 'center',
+  shadowColor: '#3B82F6',
+  shadowOpacity: 0.25,
+  shadowRadius: 8,
+  elevation: 2,
+},
+completeText: {
+  color: '#FFFFFF',
+  fontSize: 15,
+  fontWeight: '700',
+},
 });

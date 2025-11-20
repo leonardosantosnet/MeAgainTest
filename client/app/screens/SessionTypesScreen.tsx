@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -9,10 +9,12 @@ import {
   Keyboard,
   StyleSheet,
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import Slider from "@react-native-community/slider";
 import { getSessionTypes, createSessionType, deleteSessionType } from '../../services/api';
 import { SessionType } from '../../types/session';
 import * as Device from 'expo-device';
+
 
 export default function SessionTypesScreen() {
   const [types, setTypes] = useState<SessionType[]>([]);
@@ -72,6 +74,12 @@ export default function SessionTypesScreen() {
     loadTypes();
   }, []);
 
+  useFocusEffect(
+      useCallback(() => {
+         loadTypes();
+      }, [])
+  );
+
   return (
     <View style={styles.container}>
 
@@ -114,7 +122,9 @@ export default function SessionTypesScreen() {
         renderItem={({ item }) => (
           <View style={styles.item}>
             <Text style={styles.itemText}>
-              {item.name} — {item.category} — P{item.priority}
+              {item.name} {'\n'}
+              {item.category} {'\n'}
+              P{item.priority}
             </Text>
             <TouchableOpacity onPress={() => handleDelete(item.id.toString())}>
               <Text style={styles.delete}>Delete</Text>
@@ -195,6 +205,7 @@ const styles = StyleSheet.create({
   itemText: {
     fontSize: 16,
     color: '#333',
+    flexWrap: 'wrap',
   },
   delete: {
     color: '#FF4D4D',

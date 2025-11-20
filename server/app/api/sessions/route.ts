@@ -5,9 +5,10 @@ export async function GET(request: Request) {
   try {
     const url = new URL(request.url);
     const macUser = url.searchParams.get('mac');
-
+    const filter = url.searchParams.get('filter') == "full" ?  { mac: macUser?.toString() } :  { mac: macUser?.toString(), completed: false }
+    console.log(filter);
     const sessions = await prisma.session.findMany({
-      where: { mac: macUser?.toString() },
+      where: filter,
       include: { sessionType: true },
       orderBy: { startTime: 'asc' },
     });
@@ -23,27 +24,32 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
+
+  const url = new URL(request.url);
+
   try {
-    const { sessionTypeId, startTime, duration, mac } = await request.json();
+    if(url.searchParams.get('action')=="INSERT"){
+      const { sessionTypeId, startTime, duration, mac } = await request.json();
 
-    if (!sessionTypeId || !startTime || !duration || !mac) {
-      return NextResponse.json(
-        { error: 'Incomplete fields.' },
-        { status: 400 }
-      );
+      if (!sessionTypeId || !startTime || !duration || !mac) {
+        return NextResponse.json(
+          { error: 'Incomplete fields.' },
+          { status: 400 }
+        );
+      }
+
+      const newSession = await prisma.session.create({
+        data: {
+          sessionTypeId,
+          startTime: new Date(startTime),
+          duration,
+          mac,
+        },
+        include: { sessionType: true },
+      });
+
+      return NextResponse.json(newSession);
     }
-
-    const newSession = await prisma.session.create({
-      data: {
-        sessionTypeId,
-        startTime: new Date(startTime),
-        duration,
-        mac,
-      },
-      include: { sessionType: true },
-    });
-
-    return NextResponse.json(newSession);
   } catch (err) {
     console.error(err);
     return NextResponse.json(
@@ -51,6 +57,49 @@ export async function POST(request: Request) {
       { status: 500 }
     );
   }
+
+  try {
+    if(url.searchParams.get('action')=="COMPLETE_SESSION"){
+      console.log("COMPLETE_SESSION")
+      const macUser = url.searchParams.get('mac');
+      const id = url.searchParams.get('id');
+      
+      if(id && macUser){
+
+        // Check if exists
+        const existing = await prisma.session.findUnique({ where: { id } });
+
+        if (!existing) {
+          return NextResponse.json({ error: "Session not found" });
+        }
+
+        // Prevent completing twice
+        if (existing.completed) {
+          return NextResponse.json({ error: "Session already completed" });
+        }
+
+        const updated = await prisma.session.update({
+            where: { id },
+            data: {
+              completed: true
+            },
+        });
+
+        return NextResponse.json(updated);
+      }else{
+        return NextResponse.json({ error: "Session not found" });
+      }
+    }
+  } catch (err) {
+    console.error(err);
+    return NextResponse.json(
+      { error: 'Error completing session.' },
+      { status: 500 }
+    );
+  }
+
+
+
 }
 
 export async function DELETE(request: Request) {
@@ -76,6 +125,7 @@ export async function DELETE(request: Request) {
     );
   }
 }
+
 
 // ------------------- Intelligent Suggestions -------------------
 

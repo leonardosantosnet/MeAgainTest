@@ -51,14 +51,27 @@ export async function getSessions() {
   return res.data;
 }
 
+export async function getFullSessions() {
+  const res = await api.get(`/sessions?mac=${macDevice}&filter=full`);
+  return res.data;
+}
+
 export async function createSession(data: { sessionTypeId: number; startTime: string; duration: number, mac: string }) {
-  const res = await api.post(`/sessions?mac=${macDevice}`, data);
+  const res = await api.post(`/sessions?action=INSERT&mac=${macDevice}`, data);
   return res.data;
 }
 
 export async function deleteSession(id: string) {
   await api.delete(`/sessions/?id=${id}`);
 }
+
+export async function completeSession(id: string) {
+  console.log("completeSession");
+  const response = await api.post(`/sessions/?action=COMPLETE_SESSION&id=${id}&mac=${macDevice}`);
+  return response.data;
+}
+
+
 
 export async function getSuggestions(data: { sessionTypeId: number; duration: number }) {
   const res = await api.post('/sessions/suggest', data);
