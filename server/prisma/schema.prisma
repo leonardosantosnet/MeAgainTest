@@ -1,0 +1,36 @@
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model SessionType {
+  id             String   @id @default(cuid())
+  name           String
+  category       String
+  priority       Int
+  completedCount Int      @default(0)
+  sessions       Session[]
+  mac            String
+}
+
+model Availability {
+  id        String @id @default(cuid())
+  day       String
+  startHour String
+  endHour   String
+  mac       String
+}
+
+model Session {
+  id            String      @id @default(cuid())
+  sessionType   SessionType @relation(fields: [sessionTypeId], references: [id])
+  sessionTypeId String
+  startTime     DateTime
+  duration      Int
+  completed     Boolean     @default(false)
+  mac           String
+}
