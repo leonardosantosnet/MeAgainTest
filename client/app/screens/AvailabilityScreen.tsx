@@ -216,13 +216,13 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   timeText: {
-    fontSize: 16,
+    fontSize: 14,
     color: '#333',
   },
   saveButton: {
     padding: 15,
     backgroundColor: '#4CAF50',
-    borderRadius: 12,
+    borderRadius: 10,
     alignItems: 'center',
     marginBottom: 20,
     shadowColor: '#4CAF50',
@@ -231,7 +231,7 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   saveText: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '700',
     color: '#FFF',
   },

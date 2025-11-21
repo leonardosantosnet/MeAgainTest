@@ -60,8 +60,6 @@ export async function DELETE(request: Request) {
     const url = new URL(request.url);
     const id = url.searchParams.get('id');
 
-    console.log(`id ${id}`);
-
     if (!id) {
       return NextResponse.json(
         { error: 'ID is required' }, 

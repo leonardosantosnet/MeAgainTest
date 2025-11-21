@@ -17,8 +17,11 @@ import * as Device from 'expo-device';
 
 import RNPickerSelect from "react-native-picker-select";
 
-import { getSessionTypes, createSession, getSessions, deleteSession, completeSession } from '../../services/api';
+import { getSessionTypes, createSession, getSessions, deleteSession, completeSession, getAvailability } from '../../services/api';
 import { Session, SessionType } from '../../types/session';
+import { Availability } from '../../types/availability';
+import { isWithinAvailability } from '../utils/availabilityUtils';
+import { hasSessionConflict } from '../utils/hasSessionConflict';
 
 export default function SessionsScreen() {
   const [sessionTypes, setSessionTypes] = useState<SessionType[]>([]);
@@ -28,7 +31,9 @@ export default function SessionsScreen() {
   const [isPickerVisible, setPickerVisible] = useState(false);
   const [sessions, setSessions] = useState<Session[]>([]);
   const macDevice = Device.osInternalBuildId || "";
-
+  const [listAvailability, setListAvailability] = useState<Availability[]>([]);
+  const [pickerKey, setPickerKey] = useState(0);
+  
   useEffect(() => {
     fetchTypes();
     fetchSessions();
@@ -48,6 +53,11 @@ export default function SessionsScreen() {
     try {
       const data = await getSessions();
       setSessions(data);
+      setListAvailability(await getAvailability());
+      setSessionTypeId(null);
+      setPickerKey(prev => prev + 1);
+      setStartTime(null);
+      setDuration('30');
     } catch (err) {
       console.error(err);
       Alert.alert('Error', 'Unable to load sessions.');
@@ -64,6 +74,21 @@ export default function SessionsScreen() {
   const handleCreateSession = async () => {
     if (!sessionTypeId || !startTime || !duration) {
       Alert.alert('Error', 'Please fill in session type, date/time, and duration.');
+      return;
+    }
+ 
+    const endTime = dayjs(startTime).add(Number(duration), 'minute').toDate();
+
+    // 1️⃣ Check availability
+    if (!isWithinAvailability(startTime, endTime, listAvailability)) {
+      Alert.alert('Error', 'No availability for the selected date/time.');
+      return;
+    }
+
+    // 2️⃣ Check session conflict
+    
+    if (hasSessionConflict(startTime, endTime, sessions)) {
+      Alert.alert('Error', 'This session conflicts with an existing session.');
       return;
     }
 
@@ -115,7 +140,7 @@ export default function SessionsScreen() {
           {item.sessionType?.category || 'Category'}
         </Text>
         <Text style={styles.sessionInfo}>
-          Date: <Text style={styles.sessionBold}>{dayjs(item.dateTime).format('MM/DD/YYYY HH:mm')}</Text>
+          Date: <Text style={styles.sessionBold}>{dayjs(item.startTime).format('MM/DD/YYYY HH:mm')}</Text>
         </Text>
         <Text style={styles.sessionInfo}>
           Duration: <Text style={styles.sessionBold}>{item.duration} min</Text>
@@ -140,8 +165,10 @@ export default function SessionsScreen() {
 
   useFocusEffect(
     useCallback(() => {
-       fetchTypes();
-      fetchSessions();
+      setTimeout(() => {
+        fetchTypes();
+        fetchSessions();
+      }, 0);
     }, [])
   );
 
@@ -157,6 +184,7 @@ export default function SessionsScreen() {
           <Text style={styles.label}>Session Type</Text>
 
           <RNPickerSelect
+            key={pickerKey}
             onValueChange={(value) => setSessionTypeId(value)}
             items={sessionTypes.map(type => ({
               label: `${type.name} (${type.category})`,
@@ -168,13 +196,15 @@ export default function SessionsScreen() {
                 padding: 14,
                 borderRadius: 12,
                 backgroundColor: '#fff',
-                fontSize: 16,
+                fontSize: 14,
+                marginBottom: 10
               },
               inputAndroid: {
                 padding: 14,
                 borderRadius: 12,
                 backgroundColor: '#fff', 
-                fontSize: 16,
+                fontSize: 14,
+                marginBottom: 10
               },
             }}
           />
@@ -206,7 +236,8 @@ export default function SessionsScreen() {
           <TouchableOpacity style={styles.createButton} onPress={handleCreateSession}>
             <Text style={styles.createButtonText}>Create</Text>
           </TouchableOpacity>
-<Text style={styles.header}>Your Sessions</Text>
+
+          <Text style={styles.header}>Your Sessions</Text>
         </>
       }
     />
@@ -260,14 +291,14 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   dateButtonText: {
-    fontSize: 16,
+    fontSize: 14,
     color: '#1E1E1E',
   },
   input: {
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
     padding: 12,
-    fontSize: 16,
+    fontSize: 14,
     marginBottom: 16,
     shadowColor: '#000',
     shadowOpacity: 0.03,
@@ -289,8 +320,8 @@ const styles = StyleSheet.create({
   },
   createButtonText: {
     color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '700',
+    fontSize: 13,
+    fontWeight: '500',
   },
   sessionCard: {
     backgroundColor: '#FFFFFF',
@@ -304,17 +335,17 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   sessionTitle: {
-    fontSize: 20,
+    fontSize: 16,
     fontWeight: '700',
     color: '#1E1E1E',
   },
   sessionCategory: {
-    fontSize: 15,
+    fontSize: 13,
     color: '#6B7280',
     marginBottom: 10,
   },
   sessionInfo: {
-    fontSize: 15,
+    fontSize: 12,
     color: '#374151',
     marginBottom: 4,
   },
@@ -336,8 +367,8 @@ const styles = StyleSheet.create({
   },
   deleteText: {
     color: '#FFFFFF',
-    fontSize: 15,
-    fontWeight: '700',
+    fontSize: 11,
+    fontWeight: '500',
   },
   completeButton: {
   flex: 1,
@@ -353,7 +384,7 @@ const styles = StyleSheet.create({
 },
 completeText: {
   color: '#FFFFFF',
-  fontSize: 15,
-  fontWeight: '700',
+  fontSize: 11,
+  fontWeight: '500',
 },
 });

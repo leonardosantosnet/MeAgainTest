@@ -10,7 +10,7 @@ export interface Session {
   id: string;
   sessionTypeId: number;
   sessionType: SessionType; 
-  dateTime: string;         
+  startTime: string;         
   duration: number;         
   completed: boolean;
 }

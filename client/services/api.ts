@@ -1,9 +1,8 @@
 import axios from 'axios';
 import * as Device from 'expo-device';
+import dayjs from "dayjs";
+
 const macDevice = Device.osInternalBuildId;
-
-console.log("Device ID:", Device.osInternalBuildId);
-
 
 const BASE_URL = 'http://192.168.1.209:3000/api'; // ou 10.0.2.2 para Android emulator
 
@@ -53,6 +52,11 @@ export async function getSessions() {
 
 export async function getFullSessions() {
   const res = await api.get(`/sessions?mac=${macDevice}&filter=full`);
+  return res.data;
+}
+
+export async function getFullSessionsToday() {
+  const res = await api.get(`/sessions?mac=${macDevice}&filter=full&date=${dayjs().format("YYYY-MM-DD")}`);
   return res.data;
 }
 

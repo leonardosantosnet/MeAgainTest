@@ -16,6 +16,7 @@
     "@react-navigation/bottom-tabs": "^6.5.11",
     "@react-navigation/native": "^6.1.10",
     "axios": "^1.6.2",
+    "dayjs": "^1.11.19",
     "expo": "~51.0.0",
     "expo-device": "~6.0.2",
     "expo-status-bar": "~1.12.0",
@@ -27,11 +28,13 @@
     "react-native-modal-selector": "^2.1.2",
     "react-native-picker-select": "^9.3.1",
     "react-native-safe-area-context": "^5.6.2",
+    "react-native-vector-icons": "^10.3.0",
     "react-native-web": "~0.19.10"
   },
   "devDependencies": {
     "@types/react": "~18.2.0",
     "@types/react-native": "~0.72.0",
+    "@types/react-native-vector-icons": "^6.4.18",
     "typescript": "^5.3.0"
   }
 }

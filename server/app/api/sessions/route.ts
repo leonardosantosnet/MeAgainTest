@@ -5,8 +5,12 @@ export async function GET(request: Request) {
   try {
     const url = new URL(request.url);
     const macUser = url.searchParams.get('mac');
-    const filter = url.searchParams.get('filter') == "full" ?  { mac: macUser?.toString() } :  { mac: macUser?.toString(), completed: false }
-    console.log(filter);
+    let filter = url.searchParams.get('filter') == "full" ?  { mac: macUser?.toString() } :  { mac: macUser?.toString(), completed: false }
+    
+    if(url.searchParams.get('date')){
+      filter = {...filter, ...{startTime:url.searchParams.get('date')}};
+    }
+
     const sessions = await prisma.session.findMany({
       where: filter,
       include: { sessionType: true },
@@ -60,7 +64,7 @@ export async function POST(request: Request) {
 
   try {
     if(url.searchParams.get('action')=="COMPLETE_SESSION"){
-      console.log("COMPLETE_SESSION")
+
       const macUser = url.searchParams.get('mac');
       const id = url.searchParams.get('id');
       

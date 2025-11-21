@@ -149,7 +149,7 @@ const styles = StyleSheet.create({
     color: '#333',
   },
   label: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '600',
     marginBottom: 6,
     color: '#555',
@@ -161,7 +161,7 @@ const styles = StyleSheet.create({
     padding: 12,
     marginBottom: 16,
     backgroundColor: '#FFF',
-    fontSize: 16,
+    fontSize: 14,
     shadowColor: '#000',
     shadowOpacity: 0.05,
     shadowRadius: 5,
@@ -180,11 +180,11 @@ const styles = StyleSheet.create({
   },
   addButtonText: {
     color: '#FFF',
-    fontSize: 16,
-    fontWeight: '700',
+    fontSize: 14,
+    fontWeight: '500',
   },
   subtitle: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '600',
     marginBottom: 10,
     color: '#333',
