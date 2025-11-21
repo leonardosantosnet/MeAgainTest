@@ -2,46 +2,49 @@ import React, { useEffect, useState, useCallback } from "react";
 import { useFocusEffect } from '@react-navigation/native';
 import { View, Text, StyleSheet, SectionList, FlatList, TouchableOpacity } from "react-native";
 import dayjs from "dayjs";
-import isBetween from 'dayjs/plugin/isBetween';
 
-import { getSessions, getAvailability, getFullSessions,createSession } from "../../services/api";
+import { getAvailability, getFullSessions, createSession } from "../../services/api";
 import Icon from 'react-native-vector-icons/Feather';
 import * as Device from 'expo-device';
-import { isWithinAvailability, timeToMinutes } from '../utils/availabilityUtils';
+
+import { isWithinAvailability } from '../utils/availabilityUtils';
 import { hasSessionConflict } from '../utils/hasSessionConflict';
+
 import { Availability } from '../../types/availability';
 import { Session } from '../../types/session';
 
 export default function HomeScreen() {
   const [todaySessions, setTodaySessions] = useState<Session[]>([]);
   const [completedToday, setCompletedToday] = useState<Session[]>([]);
-  const [suggestions, setSuggestions] =  useState<Session[]>([]);
+  const [suggestions, setSuggestions] = useState<Session[]>([]);
   const [availability, setAvailability] = useState<Availability[]>([]);
+
   const macDevice = Device.osInternalBuildId || "";
+  let suggestionLimit = 0;
   useEffect(() => {
     loadData();
   }, []);
 
   useFocusEffect(
     useCallback(() => {
-      setTimeout(() => {
-        loadData();
-      }, 0);
+      setTimeout(() => loadData(), 0);
     }, [])
   );
 
   async function loadData() {
+    suggestionLimit = 0;
     const sessions = await getFullSessions();
     const availabilityData = await getAvailability();
+
     setAvailability(availabilityData);
 
     const today = dayjs().format("YYYY-MM-DD");
 
-    const todays = sessions.filter((s: any) =>
+    const todays = sessions.filter((s: { startTime: string | number | dayjs.Dayjs | Date | null | undefined; }) =>
       dayjs(s.startTime).format("YYYY-MM-DD") === today
     );
 
-    const completed = todays.filter((s: any) => s.completed);
+    const completed = todays.filter((s: { completed: any; }) => s.completed);
 
     setTodaySessions(todays);
     setCompletedToday(completed);
@@ -49,29 +52,31 @@ export default function HomeScreen() {
     generateSmartSuggestions(sessions, availabilityData);
   }
 
-  function generateSmartSuggestions(sessions: Session[], availability: Availability[]){
-    const dayName = dayjs(); // Monday, Tuesday, etc.
-    const sessionHistory = sessions.filter(a =>{
+  function generateSmartSuggestions(sessions: Session[], availability: Availability[]) {
+    const today = dayjs();
 
-       return dayjs(a.startTime).format('dddd') === dayName.format('dddd') && dayjs(a.startTime).format('YYYY-MM-DD') != dayName.format('YYYY-MM-DD') && a.completed == true
-      
-      });
+    const sessionHistory = sessions.filter((a) =>
+      dayjs(a.startTime).format("dddd") === today.format("dddd") &&
+      dayjs(a.startTime).format("YYYY-MM-DD") !== today.format("YYYY-MM-DD") &&
+      a.completed === true
+    );
 
-    const sessionAvailability = sessionHistory.filter(a => {
-      const endTime = dayjs(a.startTime).add(Number(a.duration), 'minute').toDate();
-      
-      return isWithinAvailability(dayjs(a.startTime).toDate(), endTime, availability) ? true : false;
-    });
-    
-    const sessionConflict = sessionAvailability.filter(a => {
-      const startTime = dayjs().hour(dayjs(a.startTime).hour()).minute(dayjs(a.startTime).minute()).toDate();
-      const endTime = dayjs().hour(dayjs(a.startTime).hour()).minute(dayjs(a.startTime).minute()).add(Number(a.duration), 'minute').toDate();
-
-      return !hasSessionConflict(startTime, endTime, sessions) ? true : false;
+    const availableHistory = sessionHistory.filter((a) => {
+      const endTime = dayjs(a.startTime).add(a.duration, 'minute').toDate();
+      return isWithinAvailability(
+        dayjs(a.startTime).toDate(),
+        endTime,
+        availability
+      );
     });
 
-    setSuggestions(sessionConflict);
+    const conflictFree = availableHistory.filter((a) => {
+      const start = dayjs().hour(dayjs(a.startTime).hour()).minute(dayjs(a.startTime).minute());
+      const end = start.add(a.duration, "minute");
+      return !hasSessionConflict(start.toDate(), end.toDate(), sessions);
+    });
 
+    setSuggestions(conflictFree);
   }
 
   const renderSession = ({ item }: { item: Session }) => (
@@ -83,18 +88,20 @@ export default function HomeScreen() {
       {item.completed && <Text style={styles.completedBadge}>Completed</Text>}
     </View>
   );
-  
+
   const suggestionInsert = async (oldSession: Session) => {
     try {
       const oldStartTime = dayjs(oldSession.startTime);
+
       await createSession({
-              sessionTypeId: oldSession.sessionTypeId,
-              startTime: dayjs().hour(oldStartTime.hour()).minute(oldStartTime.minute()).toISOString(),
-              duration: Number(oldSession.duration),
-              mac: macDevice,
-            });
+        sessionTypeId: oldSession.sessionTypeId,
+        startTime: dayjs().hour(oldStartTime.hour()).minute(oldStartTime.minute()).toISOString(),
+        duration: oldSession.duration,
+        mac: macDevice,
+      });
+
       loadData();
-          
+
     } catch (err) {
       console.error(err);
     }
@@ -103,93 +110,87 @@ export default function HomeScreen() {
   const renderSuggestion = ({ item }: { item: Session }) => (
     <View style={styles.suggestionCard}>
       <Text style={styles.suggestionTitle}>{item.sessionType.name}</Text>
-      <Text style={styles.suggestionsText}>good spacing ({dayjs().diff(dayjs(item.startTime), "day")} day's since last {item.sessionType.name}). Uses your evening focus window.</Text>
-       <TouchableOpacity
-                  style={styles.suggestionInsertButton}
-                  onPress={() => suggestionInsert(item)}
-       >
-          <Text style={styles.suggestionInsertButtonText}>Accept</Text>
 
-       </TouchableOpacity>
+      <Text style={styles.suggestionsText}>
+        good spacing ({dayjs().diff(dayjs(item.startTime), "day")} day's since last {item.sessionType.name}). Uses your evening focus window.
+      </Text>
+
+      <TouchableOpacity
+        style={styles.suggestionInsertButton}
+        onPress={() => suggestionInsert(item)}
+      >
+        <Text style={styles.suggestionInsertButtonText}>Accept</Text>
+      </TouchableOpacity>
     </View>
   );
 
-
   const sections = [
-    {
-      title: "Your schedule today",
-      data: [{ empty: true, summary: true }]
-    },
-    {
-      title: "Smart Suggestions",
-      data: suggestions.length ? suggestions : [{ empty: true }]
-    },
-    {
-      title: "Today's Sessions",
-      data: todaySessions.length ? todaySessions : [{ empty: true }]
-    }
+    { title: "Your schedule today", data: [{ summary: true }] },
+    { title: "Smart Suggestions", data: [{ empty: true }] },
+    { title: "Today's Sessions", data: todaySessions.length ? todaySessions : [{ empty: true }] }
   ];
 
-  let smartSugestion = false;
+  
+
   return (
     <View style={styles.container}>
-      <Text style={styles.todayDate}>
-        {dayjs().format("dddd, MMMM D")}
-      </Text>
+      <Text style={styles.todayDate}>{dayjs().format("dddd, MMMM D")}</Text>
 
       <SectionList
         sections={sections}
-        keyExtractor={(item, index) =>  index.toString()}
+        keyExtractor={(_, index) => index.toString()}
+        stickySectionHeadersEnabled
+        contentContainerStyle={{ paddingBottom: 20 }}
+
+        renderSectionHeader={({ section }) => (
+          <View style={styles.sectionHeader}>
+            <Text style={styles.subtitle}>{section.title}</Text>
+          </View>
+        )}
+
         renderItem={({ item, section }) => {
-          
-        
-          if ('summary' in item) {
-            // Card de resumo
+          if (item.summary)
             return (
               <View style={styles.summaryCard}>
                 <View style={styles.actionRow}>
                   <Text style={styles.summaryLabel}>
                     <Icon name="clock" size={14} color="#333" /> {todaySessions.length} Sessions
-                  </Text>        
+                  </Text>
                   <Text style={styles.summaryLabel}>
                     <Icon name="check" size={14} color="#333" /> {completedToday.length} Completed
                   </Text>
                 </View>
               </View>
             );
+
+          if(section.title === "Smart Suggestions" ){
+            suggestionLimit = 1;
+            if (suggestions.length){
+              return (
+                <FlatList
+                  data={suggestions}
+                  horizontal
+                  keyExtractor={(item) => item.id}
+                  renderItem={renderSuggestion}
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={{ paddingVertical: 12 }}
+                />
+              );
+            }else{
+              return <Text style={styles.noSessions}>No Suggestion</Text>;
+            }
           }
 
-          if (section.title === "Smart Suggestions" && !smartSugestion){ 
-           
-            smartSugestion = true;
-            return (
-              <FlatList
-                data={suggestions} 
-                horizontal
-                keyExtractor={(item) => item.id}
-                renderItem={({ item }) => renderSuggestion({ item })}
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={{ paddingVertical: 12 }}
-              />
-            );
-          
+          if (section.title === "Today's Sessions"){
+            if(todaySessions.length){
+              return renderSession({item});
+            }else{
+              return <Text style={styles.noSessions}>No Session</Text>;
+            }
           }
 
-          if (item.empty) {
-            return <Text style={styles.noSessions}>No Suggestion</Text>;
-          }
-
-          if (section.title === "Today's Sessions" && !item.empty) return renderSession({ item });
-         
           return null;
         }}
-        renderSectionHeader={({ section: { title } }) => (
-          <View style={styles.sectionHeader}>
-            <Text style={styles.subtitle}>{title}</Text>
-          </View>
-        )}
-        stickySectionHeadersEnabled
-        contentContainerStyle={{ paddingBottom: 20 }}
       />
     </View>
   );
@@ -202,20 +203,15 @@ const styles = StyleSheet.create({
     backgroundColor: "#F2F4F8",
   },
   actionRow: {
-    textAlign: 'center',
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginLeft:14, 
-    marginRight:14,
-    gap: 10,
+    marginLeft: 14,
+    marginRight: 14,
   },
   sessionCard: {
     backgroundColor: "#fff",
     padding: 10,
-    textAlign:"center",
     borderRadius: 14,
-    marginRight: 12,
-    marginLeft:2,
     marginBottom: 20,
     width: '99%',
     shadowColor: "#000",
@@ -225,7 +221,7 @@ const styles = StyleSheet.create({
   },
   sessionTitle: {
     fontSize: 15,
-    marginBottom:6,
+    marginBottom: 6,
     fontWeight: "200",
     color: "#111827",
   },
@@ -254,7 +250,6 @@ const styles = StyleSheet.create({
     shadowColor: "#000",
     shadowOpacity: 0.05,
     shadowRadius: 5,
-    elevation: 0,
   },
   suggestionTitle: {
     fontSize: 16,
@@ -266,11 +261,10 @@ const styles = StyleSheet.create({
     color: "#111827",
   },
   suggestionInsertButton: {
-    flex: 1,
     marginTop: 10,
     paddingVertical: 10,
     borderRadius: 10,
-    backgroundColor: '#030303FF', // blue
+    backgroundColor: '#030303FF',
     alignItems: 'center',
     shadowColor: '#090A0AFF',
     shadowOpacity: 0.25,
@@ -281,23 +275,6 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 11,
     fontWeight: '500',
-  },
-  slotBadge: {
-    marginTop: 8,
-    paddingVertical: 6,
-    backgroundColor: "#E0F2FE",
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    alignSelf: "flex-start",
-  },
-  slotText: {
-    color: "#0369A1",
-    fontWeight: "600",
-  },
-  noSlotText: {
-    marginTop: 8,
-    color: "#9CA3AF",
-    fontStyle: "italic",
   },
   todayDate: {
     fontSize: 18,
@@ -328,5 +305,10 @@ const styles = StyleSheet.create({
     backgroundColor: "#F2F4F8",
     paddingVertical: 6,
   },
-  noSessions: { fontSize: 14, color: '#9CA3AF', fontStyle: 'italic', marginBottom: 12 },
+  noSessions: {
+    fontSize: 14,
+    color: '#9CA3AF',
+    fontStyle: 'italic',
+    marginBottom: 12
+  },
 });

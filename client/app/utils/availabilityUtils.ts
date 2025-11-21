@@ -1,36 +1,33 @@
 import dayjs from 'dayjs';
 import { Availability } from '../../types/availability';
 
-export function isWithinAvailability(start: Date, end: Date, availability: Availability[]) {
+export function isWithinAvailability(
+  start: Date | string | dayjs.Dayjs,
+  end: Date | string | dayjs.Dayjs,
+  availability: Availability[]
+): boolean {
   const dayName = dayjs(start).format('dddd'); // Monday, Tuesday, etc.
-  
+
   const dayAvailability = availability.filter(a => a.day === dayName);
-   
   if (dayAvailability.length === 0) return false;
 
-  
-  const checkAvailability =  dayAvailability.map(a => {
+  const startMinutes = timeToMinutes(start);
+  const endMinutes = timeToMinutes(end);
 
-    if(Number(timeToMinutes(start)) && Number(convertTimeStamp(a.startHour)) && Number(convertTimeStamp(a.endHour))){
-      if(timeToMinutes(start) >= convertTimeStamp(a.startHour) && timeToMinutes(end) <= convertTimeStamp(a.endHour)){
-        return true;
-      }
-    }
+  return dayAvailability.some(a => {
+    const startHourMinutes = convertTimeStamp(a.startHour);
+    const endHourMinutes = convertTimeStamp(a.endHour);
 
+    return startMinutes >= startHourMinutes && endMinutes <= endHourMinutes;
   });
-
-  if (checkAvailability.some(a => a === true)) 
-    return true; 
-  else 
-    return false;
 }
 
-export function timeToMinutes(date: Date | string | dayjs.Dayjs) : Number {
+export function timeToMinutes(date: Date | string | dayjs.Dayjs): number {
   const d = dayjs(date);
   return d.hour() * 60 + d.minute();
-} 
+}
 
-export function convertTimeStamp(hourFull: string) : Number {
+export function convertTimeStamp(hourFull: string): number {
   const [hour, minute] = hourFull.split(":").map(Number);
   return hour * 60 + minute;
-} 
+}

@@ -20,7 +20,7 @@ export default function ProgressScreen() {
       const completedSessions = sessions.filter((s: { completed: any; }) => s.completed);
       const completed = completedSessions.length;
 
-      // Calculate streak
+      // Daily streak logic
       const completedDates = completedSessions
         .map((s: { dateTime: string | number | dayjs.Dayjs | Date | null | undefined; }) => dayjs(s.dateTime).startOf('day'))
         .sort((a: number, b: number) => b.valueOf() - a.valueOf());
@@ -43,15 +43,12 @@ export default function ProgressScreen() {
     }
   }
 
+  // Load whenever screen becomes active
   useFocusEffect(
-      useCallback(() => {
-         loadProgress();
-      }, [])
+    useCallback(() => {
+      loadProgress();
+    }, [])
   );
-  
-  useEffect(() => {
-    loadProgress();
-  }, []);
 
   if (!stats) {
     return (
@@ -82,10 +79,10 @@ export default function ProgressScreen() {
         </View>
       </View>
 
-
       <Text style={styles.progressBarText}>
         {stats.completed} of {stats.total} sessions completed
       </Text>
+
     </View>
   );
 }
@@ -95,12 +92,6 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 24,
     backgroundColor: '#F2F4F8',
-  },
-  header: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: '#1E1E1E',
-    marginBottom: 24,
   },
   loadingText: {
     fontSize: 18,
@@ -131,19 +122,6 @@ const styles = StyleSheet.create({
     fontSize: 24,
     color: '#1E1E1E',
     fontWeight: '700',
-  },
-  progressBarContainer: {
-    flexDirection: 'row',
-    height: 12,
-    borderRadius: 6,
-    overflow: 'hidden',
-    backgroundColor: '#E5E7EB',
-  },
-  progressBarFill: {
-    backgroundColor: '#3B82F6',
-  },
-  progressBarEmpty: {
-    backgroundColor: 'transparent',
   },
   progressBarText: {
     marginTop: 12,

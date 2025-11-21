@@ -1,17 +1,18 @@
-import React, { useState, useEffect, useCallback} from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Alert, FlatList, Keyboard } from 'react-native';
+import React, { useState, useEffect, useCallback } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, Alert, FlatList } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import DateTimePicker from '@react-native-community/datetimepicker';
+
 import {
   createAvailability,
   deleteAvailability,
   getAvailability,
 } from '../../services/api';
+
 import { Availability } from '../../types/availability';
-import dayjs from "dayjs";
+import dayjs from 'dayjs';
 import * as Device from 'expo-device';
 
- 
 export default function AvailabilityScreen() {
   const [availability, setAvailability] = useState<Availability[]>([]);
   const [startHour, setStartHour] = useState<Date | null>(null);
@@ -19,17 +20,27 @@ export default function AvailabilityScreen() {
   const [showPicker, setShowPicker] = useState(false);
   const [pickerField, setPickerField] = useState<'start' | 'end'>('start');
   const [selectedDay, setSelectedDay] = useState('Monday');
-  const macDevice = Device.osInternalBuildId || "";
+  const macDevice = Device.osInternalBuildId || '';
 
-  const DAYS = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+  const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
-  const openStartPicker = () => { setPickerField('start'); setShowPicker(true); };
-  const openEndPicker = () => { setPickerField('end'); setShowPicker(true); };
+  const openStartPicker = () => {
+    setPickerField('start');
+    setShowPicker(true);
+  };
+
+  const openEndPicker = () => {
+    setPickerField('end');
+    setShowPicker(true);
+  };
 
   const handleTimeSelected = (_: any, selectedDate?: Date) => {
     setShowPicker(false);
     if (!selectedDate) return;
-    pickerField === 'start' ? setStartHour(selectedDate) : setEndHour(selectedDate);
+
+    pickerField === 'start'
+      ? setStartHour(selectedDate)
+      : setEndHour(selectedDate);
   };
 
   const fetchAvailability = async () => {
@@ -48,12 +59,13 @@ export default function AvailabilityScreen() {
       return;
     }
 
-    // Verifica sobreposição ou duplicata
     const duplicate = availability.some(a =>
       a.day === selectedDay &&
-      ((dayjs(startHour).format('HH:mm') >= a.startHour && dayjs(startHour).format('HH:mm') < a.endHour) ||
-      (dayjs(endHour).format('HH:mm') > a.startHour && dayjs(endHour).format('HH:mm') <= a.endHour) ||
-      (dayjs(startHour).format('HH:mm') <= a.startHour && dayjs(endHour).format('HH:mm') >= a.endHour))
+      (
+        (dayjs(startHour).format('HH:mm') >= a.startHour && dayjs(startHour).format('HH:mm') < a.endHour) ||
+        (dayjs(endHour).format('HH:mm') > a.startHour && dayjs(endHour).format('HH:mm') <= a.endHour) ||
+        (dayjs(startHour).format('HH:mm') <= a.startHour && dayjs(endHour).format('HH:mm') >= a.endHour)
+      )
     );
 
     if (duplicate) {
@@ -66,7 +78,7 @@ export default function AvailabilityScreen() {
         day: selectedDay,
         startHour: dayjs(startHour).format('HH:mm'),
         endHour: dayjs(endHour).format('HH:mm'),
-        mac: macDevice
+        mac: macDevice,
       });
 
       fetchAvailability();
@@ -88,22 +100,25 @@ export default function AvailabilityScreen() {
     }
   };
 
-  const formatTime = (date: Date | null) => !date ? '--:--' : dayjs(date).format('HH:mm');
+  const formatTime = (date: Date | null) =>
+    date ? dayjs(date).format('HH:mm') : '--:--';
 
-  useEffect(() => { fetchAvailability(); }, []);
+  useEffect(() => {
+    fetchAvailability();
+  }, []);
 
-   useFocusEffect(
-      useCallback(() => {
-         fetchAvailability();
-      }, [])
+  useFocusEffect(
+    useCallback(() => {
+      fetchAvailability();
+    }, [])
   );
+
   return (
     <View style={styles.container}>
-
-      {/* Day selection */}
       <Text style={styles.label}>Day of the Week:</Text>
+
       <View style={styles.daysContainer}>
-        {DAYS.map((day) => {
+        {DAYS.map(day => {
           const selected = day === selectedDay;
           return (
             <TouchableOpacity
@@ -119,10 +134,10 @@ export default function AvailabilityScreen() {
         })}
       </View>
 
-      {/* Start/End time pickers */}
       <TouchableOpacity style={styles.timeButton} onPress={openStartPicker}>
         <Text style={styles.timeText}>Start: {formatTime(startHour)}</Text>
       </TouchableOpacity>
+
       <TouchableOpacity style={styles.timeButton} onPress={openEndPicker}>
         <Text style={styles.timeText}>End: {formatTime(endHour)}</Text>
       </TouchableOpacity>
@@ -141,15 +156,17 @@ export default function AvailabilityScreen() {
         />
       )}
 
-     
       <Text style={styles.subtitle}>Your Schedule:</Text>
+
       <FlatList
         data={availability}
-        keyExtractor={(item) => item.id.toString()}
+        keyExtractor={item => item.id.toString()}
         contentContainerStyle={{ paddingBottom: 60 }}
         renderItem={({ item }) => (
           <View style={styles.item}>
-            <Text style={styles.itemText}>{item.day}: {item.startHour} → {item.endHour}</Text>
+            <Text style={styles.itemText}>
+              {item.day}: {item.startHour} → {item.endHour}
+            </Text>
             <TouchableOpacity onPress={() => handleDelete(item.id)}>
               <Text style={styles.delete}>Delete</Text>
             </TouchableOpacity>
@@ -165,12 +182,6 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 20,
     backgroundColor: '#F9F9F9',
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#333',
-    marginBottom: 16,
   },
   label: {
     fontSize: 16,
@@ -225,10 +236,6 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     alignItems: 'center',
     marginBottom: 20,
-    shadowColor: '#4CAF50',
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 3,
   },
   saveText: {
     fontSize: 14,

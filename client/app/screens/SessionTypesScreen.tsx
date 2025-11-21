@@ -11,29 +11,32 @@ import {
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import Slider from "@react-native-community/slider";
-import { getSessionTypes, createSessionType, deleteSessionType } from '../../services/api';
-import { SessionType } from '../../types/session';
 import * as Device from 'expo-device';
 
+import { getSessionTypes, createSessionType, deleteSessionType } from '../../services/api';
+import { SessionType } from '../../types/session';
 
 export default function SessionTypesScreen() {
   const [types, setTypes] = useState<SessionType[]>([]);
   const [name, setName] = useState('');
   const [category, setCategory] = useState('');
   const [priority, setPriority] = useState(3);
+
   const macDevice = Device.osInternalBuildId || "";
 
-  async function loadTypes() {
+  // --- Load session types ---
+  const loadTypes = async () => {
     try {
       const data = await getSessionTypes();
       setTypes(data);
     } catch (err) {
-      console.log(err);
+      console.error(err);
       Alert.alert('Error', 'Unable to load session types.');
     }
-  }
+  };
 
-  async function handleAdd() {
+  // --- Add new session type ---
+  const handleAdd = async () => {
     Keyboard.dismiss();
 
     if (!name || !category) {
@@ -45,44 +48,45 @@ export default function SessionTypesScreen() {
       const newType = await createSessionType({
         name,
         category,
-        priority: Number(priority),
+        priority,
         mac: macDevice,
       });
-
-      setTypes([...types, newType]);
+      setTypes(prev => [...prev, newType]);
       setName('');
       setCategory('');
       setPriority(3);
     } catch (err) {
-      console.log(err);
+      console.error(err);
       Alert.alert('Error', 'Unable to create the session type.');
     }
-  }
+  };
 
-  async function handleDelete(id: string) {
+  // --- Delete a session type ---
+  const handleDelete = async (id: string) => {
     try {
       await deleteSessionType(id);
-      const data = await getSessionTypes();
-      setTypes(data);
+      setTypes(prev => prev.filter(type => type.id !== id));
     } catch (err) {
-      console.log(err);
+      console.error(err);
       Alert.alert('Error', 'Unable to delete the session type.');
     }
-  }
+  };
 
+  // --- Effects ---
   useEffect(() => {
     loadTypes();
   }, []);
 
   useFocusEffect(
-      useCallback(() => {
-         loadTypes();
-      }, [])
+    useCallback(() => {
+      loadTypes();
+    }, [])
   );
 
+  // --- Render ---
   return (
     <View style={styles.container}>
-
+      {/* Input Fields */}
       <Text style={styles.label}>Name</Text>
       <TextInput
         style={styles.input}
@@ -101,7 +105,7 @@ export default function SessionTypesScreen() {
 
       <Text style={styles.label}>Priority Level: {priority}</Text>
       <Slider
-        style={{ width: '100%', height: 40 }}
+        style={styles.slider}
         minimumValue={1}
         maximumValue={5}
         step={1}
@@ -115,6 +119,7 @@ export default function SessionTypesScreen() {
         <Text style={styles.addButtonText}>Add Type</Text>
       </TouchableOpacity>
 
+      {/* Session Types List */}
       <Text style={styles.subtitle}>Existing Types</Text>
       <FlatList
         data={types}
@@ -126,7 +131,7 @@ export default function SessionTypesScreen() {
               {item.category} {'\n'}
               P{item.priority}
             </Text>
-            <TouchableOpacity onPress={() => handleDelete(item.id.toString())}>
+            <TouchableOpacity onPress={() => handleDelete(item.id)}>
               <Text style={styles.delete}>Delete</Text>
             </TouchableOpacity>
           </View>
@@ -136,17 +141,12 @@ export default function SessionTypesScreen() {
   );
 }
 
+// --- Styles ---
 const styles = StyleSheet.create({
   container: { 
     flex: 1, 
     padding: 20, 
     backgroundColor: '#F9F9F9',
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: '700',
-    marginBottom: 20,
-    color: '#333',
   },
   label: {
     fontSize: 14,
@@ -166,6 +166,11 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.05,
     shadowRadius: 5,
     elevation: 2,
+  },
+  slider: {
+    width: '100%',
+    height: 40,
+    marginBottom: 20,
   },
   addButton: {
     backgroundColor: '#4CAF50',
