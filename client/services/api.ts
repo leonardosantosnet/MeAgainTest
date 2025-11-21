@@ -8,6 +8,9 @@ const BASE_URL = 'http://192.168.1.209:3000/api'; // ou 10.0.2.2 para Android em
 const api = axios.create({
   baseURL: BASE_URL,
   timeout: 5000,
+  headers: {
+    'X-Device-ID': macDevice,
+  },
 });
 
 // ------------------- SESSION TYPES -------------------
